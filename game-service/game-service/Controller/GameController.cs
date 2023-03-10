@@ -34,4 +34,14 @@ public class GameController : ControllerBase
 
         return StatusCode(result.HttpStatus, result);
     }
+    
+    [HttpPost]
+    [Route("shipPlacement")]
+    public async Task<IActionResult> PlaceShipsOnBoard([FromBody] ShipPlacementDTO shipPlacement)
+    {
+        var result =
+            await gameService.PlaceAllShipsOnBoard(shipPlacement);
+
+        return StatusCode(result.HttpStatus, result);
+    }
 }

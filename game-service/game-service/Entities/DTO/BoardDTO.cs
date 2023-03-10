@@ -12,4 +12,7 @@ public class BoardDTO
     
     [JsonProperty("squares")]
     public List<List<Coordinates>> Squares { get; set; }
+    
+    [JsonProperty("placementShips")]
+    public List<ShipDTO> PlacementShips { get; set; }
 }

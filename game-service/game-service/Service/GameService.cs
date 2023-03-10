@@ -189,4 +189,180 @@ public class GameService
             };
         }
     }
+
+    public async Task<Response> PlaceAllShipsOnBoard(ShipPlacementDTO placement)
+    {
+        try
+        {
+            var game = await gameRepository.FindAsync<Game>(
+                game => game.Id == placement.GameId);
+
+            if (game == null)
+            {
+                return new Response()
+                {
+                    Message = "Game does not exist",
+                    
+                    HttpStatus = (int)HttpStatusCode.NotFound
+                };
+            }
+
+            var ships = GenerateShips(placement.Board.PlacementShips);
+
+            if (ships.Count == 0)
+            {
+                return new Response()
+                {
+                    Message = "Invalid ship placement",
+                    
+                    HttpStatus = (int)HttpStatusCode.Forbidden
+                };
+            }
+
+            var result = game.Boards.First(boardToFind => boardToFind.PlayerId == placement.Board.PlayerId);
+
+            result.HasPlacedAllShips = true;
+            
+            result.Ships.AddRange(ships);
+            
+            await gameRepository.ReplaceAsync(game, g => g.Id == placement.GameId);
+
+            return new Response()
+            {
+                Message = "Placed all ships on board",
+                
+                HttpStatus = (int)HttpStatusCode.OK
+            };
+        }
+        catch (Exception e)
+        {
+            return new Response()
+            {
+                Message = "Error while placing ships on board",
+                    
+                HttpStatus = (int)HttpStatusCode.InternalServerError
+            };
+        }
+    }
+
+
+    private List<Ship> GenerateShips(List<ShipDTO> PlacementShips)
+    {
+        List<Ship> ships = new();
+        
+        foreach(var ship in PlacementShips)
+        {
+
+            if (string.IsNullOrEmpty(ship.ShipType))
+            {
+                return new List<Ship>();
+            }
+
+            ship.ShipType = ship.ShipType.ToLower();
+
+            if (!AvailableShipsAndSizes.ContainsKey(ship.ShipType))
+            {
+                return new List<Ship>();
+            }
+
+            bool isHorizontal = ship.BowCoordinate.X == ship.SternCoordinate.X;
+
+            bool isVertical = ship.BowCoordinate.Y == ship.SternCoordinate.Y;
+
+            if (!isHorizontal || !isVertical)
+            {
+                return new List<Ship>();
+            }
+            
+            var distanceBetweenPoints = CalculateDistanceBetweenPoints(
+                ship.BowCoordinate.X,
+                ship.SternCoordinate.X,
+                ship.BowCoordinate.Y,
+                ship.SternCoordinate.Y
+            );
+
+            if (
+                CheckOutOfBounds(ship.BowCoordinate.X, ship.BowCoordinate.Y)
+                ||
+                CheckOutOfBounds(ship.SternCoordinate.X, ship.SternCoordinate.Y)
+            )
+            {
+                return new List<Ship>();
+            }
+
+            var anyShipIsOverLapping = PlacementShips.Any(
+                iterator =>
+                  iterator.BowCoordinate.X == ship.BowCoordinate.X 
+                    ||
+                    iterator.BowCoordinate.Y == ship.BowCoordinate.Y
+                    ||
+                    iterator.SternCoordinate.X == ship.SternCoordinate.X
+                    ||
+                    iterator.SternCoordinate.Y == ship.SternCoordinate.Y
+                
+            );
+
+            if (anyShipIsOverLapping)
+            {
+                return new List<Ship>();
+            }
+
+            var newShip = new Ship()
+            {
+                ShipSize = AvailableShipsAndSizes[ship.ShipType],
+
+                ShipType = ship.ShipType,
+
+                IsDestroyed = false,
+
+                Coordinates = FillCoordinatesBetweenBowAndStern(
+                    isHorizontal,
+                    isHorizontal ? ship.BowCoordinate.X : ship.SternCoordinate.X,
+                    isHorizontal ? ship.BowCoordinate.Y : ship.SternCoordinate.Y
+                    , AvailableShipsAndSizes[ship.ShipType]
+                )
+            };
+            
+            ships.Add(newShip);
+        }
+
+        return ships;
+    }
+
+
+    private int CalculateDistanceBetweenPoints(int x1, int y1, int x2, int y2)
+    {
+        return Math.Abs(x2 - x1) + Math.Abs(y2 - y1);
+    }
+
+    private bool CheckOutOfBounds(int x, int y)
+    {
+        return (x < 0 || x >= ROW_SIZE) || (y < 0 || y >= COLUMN_SIZE);
+    }
+
+
+    private List<Coordinates> FillCoordinatesBetweenBowAndStern(
+        bool isHorizontal, int x, int y, int size)
+    {
+
+        var coordinates = new List<Coordinates>();
+
+        for (int i = 0; i < size - 1; i++)
+        {
+            coordinates.Add( 
+                new Coordinates()
+                {
+                    X = isHorizontal ? x + i : x,
+                    
+                    Y = isHorizontal ? y : y + i,
+                    
+                    BombDidHit = false,
+                    
+                    IsBombed = false
+                }
+            );
+        }
+
+        return coordinates;
+    }
 }
