@@ -24,4 +24,14 @@ public class GameController : ControllerBase
 
         return StatusCode(result.HttpStatus, result);
     }
+
+    [HttpPost]
+    [Route("invitation")]
+    public async Task<IActionResult> AcceptOrRejectInvite([FromBody] GameInvitationAcceptanceDTO acceptanceDto)
+    {
+        var result =
+            await gameService.AcceptOrRejectGameInvitation(acceptanceDto);
+
+        return StatusCode(result.HttpStatus, result);
+    }
 }

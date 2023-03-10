@@ -3,6 +3,7 @@ using AutoMapper;
 using game_service.Entities;
 using game_service.Entities.DTO;
 using game_service.Repository.Interface;
+using MongoDB.Driver;
 
 namespace game_service.Service;
 
@@ -120,6 +121,69 @@ public class GameService
             return new Response()
             {
                 Message = "Error while creating game, please try again in a bit",
+                    
+                HttpStatus = (int)HttpStatusCode.InternalServerError
+            };
+        }
+    }
+
+
+    public async Task<Response> AcceptOrRejectGameInvitation(GameInvitationAcceptanceDTO gameAcceptance)
+    {
+        try
+        {
+
+            var game = await gameRepository.FindAsync<Game>(
+                game => game.Id == gameAcceptance.GameId);
+
+            if (game == null)
+            {
+                return new Response()
+                {
+                    Message = "Game does not exist",
+                    
+                    HttpStatus = (int)HttpStatusCode.NotFound
+                };
+            }
+
+            if (!game.Players.Contains(gameAcceptance.PlayerId))
+            {
+                return new Response()
+                {
+                    Message = "Could not find game",
+                    
+                    HttpStatus = (int)HttpStatusCode.NotFound
+                };
+            }
+
+            if (gameAcceptance.PlayerAcceptedInvite)
+            {
+                return new Response()
+                {
+                    Message = "Ok",
+
+                    HttpStatus = (int)HttpStatusCode.OK
+                };
+            }
+
+            game.Players.RemoveWhere(playerId => playerId == gameAcceptance.PlayerId);
+
+            game.Boards.RemoveAll(board => board.PlayerId == gameAcceptance.PlayerId);
+
+            await gameRepository.ReplaceAsync(game, g => g.Id == gameAcceptance.GameId);
+
+            return new Response()
+            {
+                Message = "Sorry that you did not want to join the fun loser",
+
+                HttpStatus = (int)HttpStatusCode.OK
+            };
+        }
+        catch (Exception e)
+        {
+            return new Response()
+            {
+                Message = "Error while accepting game",
                     
                 HttpStatus = (int)HttpStatusCode.InternalServerError
             };

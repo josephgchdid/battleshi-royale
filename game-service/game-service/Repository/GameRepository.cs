@@ -20,7 +20,7 @@ public class GameRepository : IGameRepository
         await GetCollection<T>().InsertOneAsync(obj);
     }
 
-    public async Task<T> FindAsync<T>(Expression<Func<T, bool>> funcExpression, ProjectionDefinition<T> FieldsToExclude)
+    public async Task<T> FindAsync<T>(Expression<Func<T, bool>> funcExpression)
     {
         FilterDefinition<T> filter = Builders<T>.Filter.Where(funcExpression);
 
@@ -46,4 +46,16 @@ public class GameRepository : IGameRepository
     {
         return context.database.GetCollection<T>(typeof(T).Name);
     }
+    
+    public async Task<bool> ReplaceAsync<T>(T collection,Expression<Func<T, bool>> funcExpression)
+    {
+         
+        var updatedResult = await GetCollection<T>()
+            .ReplaceOneAsync(filter:funcExpression, replacement: collection);
+
+        return updatedResult.IsAcknowledged
+               && updatedResult.ModifiedCount > 0;
+
+    }
+
 }
