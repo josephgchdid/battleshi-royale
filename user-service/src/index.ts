@@ -3,7 +3,7 @@ import { Router } from './router/router';
 import * as dotenv from 'dotenv';
 import path from 'path';
 import { Constants } from './util/constants';
-
+import Connection from './database/connection';
 class Server {
 
 
@@ -11,8 +11,14 @@ class Server {
 
     router: Router; 
 
+    connection:Connection
+
     constructor(){
 
+        this.connection = new Connection()
+
+        this.connection.connectToDataBase()
+        
         dotenv.config({ path : path.join(__dirname , '.env')})
 
         this.router = new Router();
