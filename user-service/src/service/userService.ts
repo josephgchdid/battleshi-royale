@@ -1,4 +1,5 @@
 import { Request, Response } from "express"
+import mongoose from "mongoose"
 import User from "../entities/user"
 import IUser from "../interfaces/user"
 import Auth from "../util/auth"
@@ -11,8 +12,21 @@ export class UserService {
         this.auth = new Auth()
     }
 
-    public getUserById = (req: Request, res: Response) => {
-        res.json( { message : 'hello world'})
+    public getUserProfile = async (req: Request, res: Response) => {
+        
+        var token = req.headers['authorization'] || "";
+        
+        var decodedToken = this.auth.verifyToken(token)
+        
+        if(decodedToken === null){
+            return res.status(401)
+        }
+      
+        var id = new mongoose.Types.ObjectId(decodedToken.userId || ""); 
+       
+        let user = await new User().collection.findOne({ _id : id})
+
+        return res.json(user)
     }
 
 

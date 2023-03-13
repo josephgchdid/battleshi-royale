@@ -11,7 +11,7 @@ export class Router {
 
         this.service = new UserService();
 
-        this.routes.get('/id', this.service.getUserById)
+        this.routes.get('/profile', this.service.getUserProfile)
 
         this.routes.post('/create', this.service.createNewUser)
     }
