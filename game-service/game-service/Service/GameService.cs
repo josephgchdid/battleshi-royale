@@ -13,7 +13,7 @@ public class GameService
 
     private IMapper mapper;
     
-    private const int MAX_PLAYERS_IN_GAME = 4, ROW_SIZE = 7, COLUMN_SIZE = 7; 
+    private const int MAX_PLAYERS_IN_GAME = 4, ROW_SIZE = 2, COLUMN_SIZE = 2; 
     
     public static Dictionary<string, int> AvailableShipsAndSizes = new()
     {
@@ -252,7 +252,7 @@ public class GameService
         
         foreach(var ship in PlacementShips)
         {
-
+            
             if (string.IsNullOrEmpty(ship.ShipType))
             {
                 return new List<Ship>();
@@ -269,7 +269,7 @@ public class GameService
 
             bool isVertical = ship.BowCoordinate.Y == ship.SternCoordinate.Y;
 
-            if (!isHorizontal || !isVertical)
+            if (!isHorizontal && !isVertical)
             {
                 return new List<Ship>();
             }
@@ -281,6 +281,13 @@ public class GameService
                 ship.SternCoordinate.Y
             );
 
+            int shipSize = AvailableShipsAndSizes[ship.ShipType];
+
+            if (distanceBetweenPoints + 1 > shipSize)
+            {
+                return new List<Ship>();
+            }
+            
             if (
                 CheckOutOfBounds(ship.BowCoordinate.X, ship.BowCoordinate.Y)
                 ||
@@ -292,14 +299,19 @@ public class GameService
 
             var anyShipIsOverLapping = PlacementShips.Any(
                 iterator =>
-                  iterator.BowCoordinate.X == ship.BowCoordinate.X 
-                    ||
+                  (iterator.BowCoordinate.X == ship.BowCoordinate.X 
+                    &&
                     iterator.BowCoordinate.Y == ship.BowCoordinate.Y
-                    ||
-                    iterator.SternCoordinate.X == ship.SternCoordinate.X
-                    ||
-                    iterator.SternCoordinate.Y == ship.SternCoordinate.Y
-                
+                     )
+                   &&
+                  (
+                      iterator.SternCoordinate.X == ship.SternCoordinate.X
+                      &&
+                      iterator.SternCoordinate.Y == ship.SternCoordinate.Y
+
+                  )
+                  &&
+                  iterator.ShipType != ship.ShipType
             );
 
             if (anyShipIsOverLapping)
@@ -309,6 +321,8 @@ public class GameService
 
             var newShip = new Ship()
             {
+                Id = Guid.NewGuid().ToString(),
+                
                 ShipSize = AvailableShipsAndSizes[ship.ShipType],
 
                 ShipType = ship.ShipType,
@@ -317,9 +331,9 @@ public class GameService
 
                 Coordinates = FillCoordinatesBetweenBowAndStern(
                     isHorizontal,
-                    isHorizontal ? ship.BowCoordinate.X : ship.SternCoordinate.X,
-                    isHorizontal ? ship.BowCoordinate.Y : ship.SternCoordinate.Y
-                    , AvailableShipsAndSizes[ship.ShipType]
+                    ship.BowCoordinate.X,
+                    ship.BowCoordinate.Y,
+                    AvailableShipsAndSizes[ship.ShipType]
                 )
             };
             
@@ -347,20 +361,20 @@ public class GameService
 
         var coordinates = new List<Coordinates>();
 
-        for (int i = 0; i < size - 1; i++)
+        for (int i = 0; i < size ; i++)
         {
-            coordinates.Add( 
-                new Coordinates()
-                {
-                    X = isHorizontal ? x + i : x,
-                    
-                    Y = isHorizontal ? y : y + i,
-                    
-                    BombDidHit = false,
-                    
-                    IsBombed = false
-                }
-            );
+            var currentCoordinates = new Coordinates()
+            {
+                X = isHorizontal ? x  : x + i,
+
+                Y = isHorizontal ? y  + i: y,
+
+                BombDidHit = false,
+
+                IsBombed = false
+            };
+            
+            coordinates.Add(currentCoordinates);
         }
 
         return coordinates;
