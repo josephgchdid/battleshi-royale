@@ -1,5 +1,8 @@
 ﻿using batch_service.context;
+using batch_service.entity;
 using MongoDB.Bson;
+using MongoDB.Driver;
+using Newtonsoft.Json;
 
 namespace batch_service.repository.impl;
 
@@ -35,5 +38,28 @@ public class MongoRepository : IMongoRepository
         var mongoCollection =  context.database.GetCollection<BsonDocument>(collectionName);
         
         await  mongoCollection.InsertManyAsync(bsonDocuments);
+    }
+
+    public async Task UpdateManyAsync(List<string> collection)
+    {
+        
+        var bsonDocuments = new List<WriteModel<BsonDocument>>();
+
+        foreach (var jsonString in collection)
+        {
+            var obj = JsonConvert.DeserializeObject<UpdateModel>(jsonString);
+            
+            var filter = Builders<BsonDocument>.Filter.Eq("_id", obj.Id);
+
+            // Define an update to apply to the selected document.
+            var update = Builders<BsonDocument>.Update.Set(obj.UpdateField, obj.NewValue);
+
+            // Add the update request to the list of requests.
+            bsonDocuments.Add(new UpdateOneModel<BsonDocument>(filter, update));
+        }
+
+        var mongoCollection =  context.database.GetCollection<BsonDocument>(collectionName);
+
+        await mongoCollection.BulkWriteAsync(bsonDocuments);
     }
 }
