@@ -14,7 +14,7 @@ public class Board
     [BsonElement("hasPlacedAllShips")]
     public bool HasPlacedAllShips { get; set; }
     
-    [BsonElement("ships")]
+    [BsonIgnore]
     public List<Ship> Ships { get; set; }
     
     [BsonElement("squares")]

@@ -8,5 +8,5 @@ public class GameInvitationDTO
     public string initialPlayerId { get; set; }
 
     [JsonProperty("invitedPlayers")]
-    public HashSet<string> invitedPlayers { get; set; }
+    public List<string> invitedPlayers { get; set; }
 }

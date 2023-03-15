@@ -15,7 +15,7 @@ public class Game
     public bool AllPlayersAreReady { get; set; }
     
     [BsonElement("players")]
-    public HashSet<string> Players { get; set; }
+    public List<Player> Players { get; set; }
     
     [BsonElement("boards")]
     public List<Board> Boards { get; set; }
