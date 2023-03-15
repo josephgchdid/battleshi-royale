@@ -4,7 +4,6 @@ namespace game_service.Repository;
 
 using System.Linq.Expressions;
 using Interface;
-using MongoDB;
 
 public class GameRepository : IGameRepository
 {
@@ -15,10 +14,6 @@ public class GameRepository : IGameRepository
         context = _context;
     }
     
-    public async Task CreateAsync<T>(T obj)
-    {
-        await GetCollection<T>().InsertOneAsync(obj);
-    }
 
     public async Task<T> FindAsync<T>(Expression<Func<T, bool>> funcExpression)
     {
@@ -46,16 +41,6 @@ public class GameRepository : IGameRepository
     {
         return context.database.GetCollection<T>(typeof(T).Name);
     }
-    
-    public async Task<bool> ReplaceAsync<T>(T collection,Expression<Func<T, bool>> funcExpression)
-    {
-         
-        var updatedResult = await GetCollection<T>()
-            .ReplaceOneAsync(filter:funcExpression, replacement: collection);
 
-        return updatedResult.IsAcknowledged
-               && updatedResult.ModifiedCount > 0;
-
-    }
 
 }
