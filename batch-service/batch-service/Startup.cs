@@ -15,7 +15,7 @@ public class Startup
         
         services.AddScoped<IMongoRepository,MongoRepository>();
 
-        services.AddHostedService<BatchConsumerService>();
+        services.AddHostedService<BatchCreateService>();
     }
 
     public void Configure(IApplicationBuilder app)

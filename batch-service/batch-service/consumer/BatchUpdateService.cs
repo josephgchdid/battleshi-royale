@@ -3,10 +3,9 @@ using Confluent.Kafka;
 
 namespace batch_service.consumer;
 
-public class BatchCreateService : AbstractConsumerService, IHostedService
+public class BatchUpdateService : AbstractConsumerService, IHostedService
 {
-    
-    public BatchCreateService(IConfiguration _configuration, IMongoRepositoryFactory _mongoRepositoryFactory) 
+    public BatchUpdateService(IConfiguration _configuration, IMongoRepositoryFactory _mongoRepositoryFactory) 
         : base(_configuration, _mongoRepositoryFactory)
     {
     }
@@ -15,7 +14,7 @@ public class BatchCreateService : AbstractConsumerService, IHostedService
     {
         var consumerBuilder = new ConsumerBuilder<Ignore, string>(consumerConfig).Build();
 
-        consumerBuilder.Subscribe("battleship_batch_update");
+        consumerBuilder.Subscribe("battleship_batch_create");
 
         Task.Run(() => StartConsumerLoop(consumerBuilder, cancellationToken));
         
@@ -26,13 +25,12 @@ public class BatchCreateService : AbstractConsumerService, IHostedService
     {
         return Task.CompletedTask;
     }
-    
 
     protected override void DoBatchAction(List<string> batchData)
     {
         var repository = mongoRepositoryFactory.Create();
         
-        repository.CreateManyAsync(batchData).Wait();
+        repository.UpdateManyAsync(batchData).Wait();
         
         Console.WriteLine($"Saved {batchData.Count} new documents");
     }
