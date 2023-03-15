@@ -3,7 +3,8 @@ using AutoMapper;
 using game_service.Entities;
 using game_service.Entities.DTO;
 using game_service.Repository.Interface;
-using MongoDB.Driver;
+using Confluent.Kafka;
+using Newtonsoft.Json;
 
 namespace game_service.Service;
 
@@ -13,7 +14,9 @@ public class GameService
 
     private IMapper mapper;
     
-    private const int MAX_PLAYERS_IN_GAME = 4, ROW_SIZE = 2, COLUMN_SIZE = 2; 
+    private const int MAX_PLAYERS_IN_GAME = 4, ROW_SIZE = 2, COLUMN_SIZE = 2;
+
+    private ConsumerConfig consumerConfig;
     
     public static Dictionary<string, int> AvailableShipsAndSizes = new()
     {
@@ -32,9 +35,20 @@ public class GameService
     
     public GameService(
         IGameRepository _gameRepository,
-        IMapper _mapper
+        IMapper _mapper,
+        IConfiguration _configuration
         )
     {
+        
+          
+        consumerConfig = new ConsumerConfig()
+        {
+            BootstrapServers = _configuration.GetValue<string>("Kafka:Server"),
+            SaslUsername = _configuration.GetValue<string>("Kafka:Username"),
+            SaslPassword = _configuration.GetValue<string>("Kafka:Password")
+        };
+
+        
         gameRepository = _gameRepository;
 
         mapper = _mapper;
@@ -58,6 +72,7 @@ public class GameService
 
             string gameId = Guid.NewGuid().ToString();
 
+
             var game = new Game()
             {
                 Id = gameId,
@@ -66,7 +81,14 @@ public class GameService
                 
                 AllPlayersAreReady = false, 
                 
-                Players = gameInvitation.invitedPlayers,
+                Players = gameInvitation.invitedPlayers.Select(p =>
+                    new Player()
+                    {
+                        Id = p,
+
+                        DidAcceptInvite = false
+                    }
+                ).ToList(),
                 
                 CreateAt = DateTime.Now
             };
@@ -80,8 +102,6 @@ public class GameService
                     PlayerId = player,
                     
                     HasPlacedAllShips = false,
-                    
-                    Ships = new(),
                     
                     Squares = new()
                 };
@@ -105,8 +125,9 @@ public class GameService
             
             //send request to invite players 
             
-            await gameRepository.CreateAsync(game);
+            await SendMessage("battleship_batch_create", JsonConvert.SerializeObject(game));
 
+            
             var gameDTO = mapper.Map<GameDTO>(game);
 
             return new Response()
@@ -146,7 +167,9 @@ public class GameService
                 };
             }
 
-            if (!game.Players.Contains(gameAcceptance.PlayerId))
+            var playerIndex =  game.Players.FindIndex(player => player.Id == gameAcceptance.PlayerId);
+            
+            if (playerIndex == -1)
             {
                 return new Response()
                 {
@@ -156,25 +179,31 @@ public class GameService
                 };
             }
 
-            if (gameAcceptance.PlayerAcceptedInvite)
+            if (!gameAcceptance.PlayerAcceptedInvite)
             {
                 return new Response()
                 {
-                    Message = "Ok",
+                    Message = "Sorry that you did not want to join the fun loser",
 
                     HttpStatus = (int)HttpStatusCode.OK
                 };
             }
 
-            game.Players.RemoveWhere(playerId => playerId == gameAcceptance.PlayerId);
+            var updateModel = new UpdateModel()
+            {
+                Id = gameAcceptance.PlayerId,
 
-            game.Boards.RemoveAll(board => board.PlayerId == gameAcceptance.PlayerId);
+                UpdateField = $"players.{playerIndex}.didAcceptInvite",
 
-            await gameRepository.ReplaceAsync(game, g => g.Id == gameAcceptance.GameId);
+                NewValue = true
+            };
 
+
+            await SendMessage("battleship_batch_update", JsonConvert.SerializeObject(updateModel));
+            
             return new Response()
             {
-                Message = "Sorry that you did not want to join the fun loser",
+                Message = "Ok",
 
                 HttpStatus = (int)HttpStatusCode.OK
             };
@@ -194,18 +223,7 @@ public class GameService
     {
         try
         {
-            var game = await gameRepository.FindAsync<Game>(
-                game => game.Id == placement.GameId);
-
-            if (game == null)
-            {
-                return new Response()
-                {
-                    Message = "Game does not exist",
-                    
-                    HttpStatus = (int)HttpStatusCode.NotFound
-                };
-            }
+       
 
             var ships = GenerateShips(placement.Board.PlacementShips);
 
@@ -219,13 +237,39 @@ public class GameService
                 };
             }
 
-            var result = game.Boards.First(boardToFind => boardToFind.PlayerId == placement.Board.PlayerId);
+            //to make things smoother, dont save the ships objects and just send them to 
+            //logic service and make the user join the lobby
+            var game = await gameRepository.FindAsync<Game>(
+                game => game.Id == placement.GameId);
 
-            result.HasPlacedAllShips = true;
+            if (game == null)
+            {
+                return new Response()
+                {
+                    Message = "Game does not exist",
+                    
+                    HttpStatus = (int)HttpStatusCode.NotFound
+                };
+            }
             
-            result.Ships.AddRange(ships);
+            var index = game.Boards.FindIndex(boardToFind => boardToFind.PlayerId == placement.Board.PlayerId);
+
+            var updateModel = new UpdateModel()
+            {
+                Id = game.Boards[index].Id,
+
+                UpdateField = $"boards.{index}.hasPlacedAllShips",
+
+                NewValue = true
+            };
             
-            await gameRepository.ReplaceAsync(game, g => g.Id == placement.GameId);
+            var board = game.Boards[index];
+            
+            board.Ships = new(ships);
+          
+            await SendMessage("battleship_batch_update", JsonConvert.SerializeObject(updateModel));
+            
+            await SendMessage("battleship_join_server", JsonConvert.SerializeObject(board));
 
             return new Response()
             {
@@ -378,5 +422,26 @@ public class GameService
         }
 
         return coordinates;
+    }
+
+    private async Task SendMessage(string topic, string message)
+    {
+        try
+        {
+            using (var producer = new ProducerBuilder<Null, string>(consumerConfig).Build())
+            {
+                await producer.ProduceAsync(topic, new Message<Null, string>
+                {
+                    Value = message
+                });
+
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+        }
+
+
     }
 }

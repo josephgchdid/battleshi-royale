@@ -14,7 +14,7 @@ public class BatchUpdateService : AbstractConsumerService, IHostedService
     {
         var consumerBuilder = new ConsumerBuilder<Ignore, string>(consumerConfig).Build();
 
-        consumerBuilder.Subscribe("battleship_batch_create");
+        consumerBuilder.Subscribe("battleship_batch_update");
 
         Task.Run(() => StartConsumerLoop(consumerBuilder, cancellationToken));
         

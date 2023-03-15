@@ -52,7 +52,7 @@ public class MongoRepository : IMongoRepository
             var filter = Builders<BsonDocument>.Filter.Eq("_id", obj.Id);
 
             // Define an update to apply to the selected document.
-            var update = Builders<BsonDocument>.Update.Set(obj.UpdateField, obj.NewValue);
+            var update = Builders<BsonDocument>.Update.Set(obj.UpdateField, BsonValue.Create(obj.NewValue));
 
             // Add the update request to the list of requests.
             bsonDocuments.Add(new UpdateOneModel<BsonDocument>(filter, update));
