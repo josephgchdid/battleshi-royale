@@ -13,7 +13,7 @@ public abstract class AbstractConsumerService
     
     protected readonly IMongoRepositoryFactory mongoRepositoryFactory;
     
-    private const int  MAX_BATCH_SIZE = 1000, MAX_POLLING_INTERVAL_MS = 15000;
+    private const int  MAX_BATCH_SIZE = 1000, MAX_POLLING_INTERVAL_MS = 5000;
   
     protected AbstractConsumerService(
         IConfiguration _configuration,
@@ -47,6 +47,26 @@ public abstract class AbstractConsumerService
         {
             var message = consumer.Consume(TimeSpan.FromMilliseconds(100));
 
+            bool hasExceededPollingTime =
+                DateTime.Now - lastBatchReceived >= TimeSpan.FromMilliseconds(MAX_POLLING_INTERVAL_MS);
+            
+            if (batch.Count >= MAX_BATCH_SIZE || hasExceededPollingTime)
+            {
+                lastBatchReceived = DateTime.Now;
+                
+                if (batch.Count == 0)
+                {
+                    continue;
+                }
+                
+                DoBatchAction(batch);
+                
+                Console.WriteLine("finished the batch action ");
+                
+                batch.Clear();
+                
+            }
+            
             if (message == null)
             {
                 continue;
@@ -59,18 +79,7 @@ public abstract class AbstractConsumerService
             
             batch.Add(message.Message.Value);
 
-            bool hasExceededPollingTime =
-                DateTime.Now - lastBatchReceived >= TimeSpan.FromMilliseconds(MAX_POLLING_INTERVAL_MS);
-            
-            if (batch.Count >= MAX_BATCH_SIZE || hasExceededPollingTime)
-            {
-                DoBatchAction(batch);
-                
-                batch.Clear();
-                
-                lastBatchReceived = DateTime.Now;
-                
-            }
+            Console.WriteLine($"added to batch : {batch.Count}");
         }
     }
 
