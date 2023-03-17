@@ -43,6 +43,7 @@ public class MongoRepository : IMongoRepository
     public async Task UpdateManyAsync(List<string> collection)
     {
         
+
         var bsonDocuments = new List<WriteModel<BsonDocument>>();
 
         foreach (var jsonString in collection)
@@ -50,16 +51,19 @@ public class MongoRepository : IMongoRepository
             var obj = JsonConvert.DeserializeObject<UpdateModel>(jsonString);
             
             var filter = Builders<BsonDocument>.Filter.Eq("_id", obj.Id);
-
+            
             // Define an update to apply to the selected document.
             var update = Builders<BsonDocument>.Update.Set(obj.UpdateField, BsonValue.Create(obj.NewValue));
 
             // Add the update request to the list of requests.
             bsonDocuments.Add(new UpdateOneModel<BsonDocument>(filter, update));
+            
         }
-
+        
         var mongoCollection =  context.database.GetCollection<BsonDocument>(collectionName);
 
-        await mongoCollection.BulkWriteAsync(bsonDocuments);
+        var res = await mongoCollection.BulkWriteAsync(bsonDocuments);
+        
+        Console.WriteLine($"matched {res.MatchedCount} and modified {res.ModifiedCount}");
     }
 }
