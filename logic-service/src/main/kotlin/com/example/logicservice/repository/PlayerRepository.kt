@@ -5,5 +5,7 @@ import org.springframework.data.repository.CrudRepository
 import org.springframework.stereotype.Repository
 
 @Repository
-interface BoardRepository : CrudRepository<CachedObject, String> {
+interface PlayerRepository : CrudRepository<CachedObject, String> {
+
+   fun countByPlayerId(id:String) : Long;
 }
