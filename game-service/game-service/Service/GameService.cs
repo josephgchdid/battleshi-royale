@@ -124,8 +124,10 @@ public class GameService
             }
             
             //send request to invite players 
+
+            var gameJson = JsonConvert.SerializeObject(game);
             
-            await SendMessage("battleship_batch_create", JsonConvert.SerializeObject(game));
+            await SendMessage("battleship_batch_create", gameJson);
 
             
             var gameDTO = mapper.Map<GameDTO>(game);
@@ -191,7 +193,7 @@ public class GameService
 
             var updateModel = new UpdateModel()
             {
-                Id = gameAcceptance.PlayerId,
+                Id = gameAcceptance.GameId,
 
                 UpdateField = $"players.{playerIndex}.didAcceptInvite",
 
@@ -256,7 +258,7 @@ public class GameService
 
             var updateModel = new UpdateModel()
             {
-                Id = game.Boards[index].Id,
+                Id = game.Id,
 
                 UpdateField = $"boards.{index}.hasPlacedAllShips",
 
@@ -269,7 +271,7 @@ public class GameService
           
             await SendMessage("battleship_batch_update", JsonConvert.SerializeObject(updateModel));
             
-            await SendMessage("battleship_join_server", JsonConvert.SerializeObject(board));
+            //await SendMessage("battleship_join_server", JsonConvert.SerializeObject(board));
 
             return new Response()
             {
