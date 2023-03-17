@@ -1,12 +1,11 @@
 package com.example.logicservice.entity
 
 import org.springframework.data.annotation.Id
-import org.springframework.data.annotation.Reference
 import org.springframework.data.redis.core.RedisHash
-import org.springframework.data.redis.core.index.Indexed
 
-@RedisHash("Board")
-data class Board(
+
+@RedisHash("Player")
+data class Player(
 
     @Id
     val playerId : String,
