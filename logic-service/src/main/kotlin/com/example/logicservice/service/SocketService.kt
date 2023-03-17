@@ -17,4 +17,17 @@ class SocketService {
             )
         }
     }
+
+    fun sendMessageExceptSelf(room: String?, eventName: String?, senderClient: SocketIOClient, message: String?) {
+        for (client in senderClient.namespace.getRoomOperations(room).clients) {
+
+            if(client.sessionId != senderClient.sessionId){
+                client.sendEvent(
+                    eventName,
+                    message?.let { Message(MessageType.SERVER, it, room) }
+                )
+            }
+
+        }
+    }
 }

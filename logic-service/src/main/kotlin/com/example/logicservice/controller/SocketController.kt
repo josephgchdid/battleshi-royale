@@ -7,6 +7,7 @@ import com.corundumstudio.socketio.listener.ConnectListener
 import com.corundumstudio.socketio.listener.DataListener
 import com.corundumstudio.socketio.listener.DisconnectListener
 import com.example.logicservice.entity.Message
+import com.example.logicservice.service.LobbyService
 import com.example.logicservice.service.LogicService
 import com.example.logicservice.service.SocketService
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -15,9 +16,10 @@ import org.springframework.stereotype.Component
 
 @Component
 class SocketController(
-   @Autowired  private val server : SocketIOServer,
-   @Autowired private val socketService: SocketService,
-   @Autowired private val gameService : LogicService
+   @Autowired private val   server :        SocketIOServer,
+   @Autowired private val   socketService : SocketService,
+   @Autowired private val   gameService :   LogicService,
+   @Autowired private val   lobbyService :  LobbyService
 ) {
 
     init {
@@ -26,10 +28,12 @@ class SocketController(
 
         server.addDisconnectListener(onDisconnected())
 
-        server.addEventListener("fire_missile", String::class.java, onChatReceived())
+        server.addEventListener("fire_missile", String::class.java, onMissileFired())
+
+        server.addEventListener("message_sent", String::class.java, onChatReceived())
     }
 
-    private fun onChatReceived(): DataListener<String> {
+    private fun onMissileFired(): DataListener<String> {
         return DataListener { senderClient: SocketIOClient?, data: String, _: AckRequest? ->
 
             try {
@@ -46,6 +50,23 @@ class SocketController(
         }
     }
 
+    private fun onChatReceived() : DataListener<String> {
+
+        return DataListener { senderClient: SocketIOClient?, data: String, _: AckRequest? ->
+
+            try {
+
+                val message = jacksonObjectMapper().readValue(data, Message::class.java)
+
+                socketService.sendMessageExceptSelf(message.game, "message_received", senderClient!!, message.message)
+
+            }catch (e : Exception){
+                throw Exception(e)
+            }
+        }
+
+    }
+
     private fun onConnected() : ConnectListener {
 
         return ConnectListener { client ->
@@ -54,7 +75,7 @@ class SocketController(
 
             val token: String = client.handshakeData.getSingleUrlParam("token")
 
-            val shouldAdmitUserToLobby = gameService.admitPlayerIntoLobby(token)
+            val shouldAdmitUserToLobby = lobbyService.admitPlayerIntoLobby(game, token)
 
             if(!shouldAdmitUserToLobby){
                 client.disconnect()
