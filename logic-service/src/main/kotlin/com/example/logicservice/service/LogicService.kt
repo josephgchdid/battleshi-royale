@@ -1,6 +1,7 @@
 package com.example.logicservice.service
 
-import com.example.logicservice.entity.*
+import com.example.logicservice.entity.game.*
+import com.example.logicservice.entity.lobby.Player
 import com.example.logicservice.repository.PlayerRepository
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.springframework.beans.factory.annotation.Autowired
@@ -15,7 +16,7 @@ class LogicService(
        init {
 
         val player = Player(
-            playerId = "2",
+            playerId = "6415b95807906b41da9aafc0",
             id = "66efd05f-4c6d-4fa4-96bb-77c8b459c60f",
             gameId = "20aba1a2-16c8-47fe-b347-b53160887035",
             squares = arrayListOf(
@@ -171,7 +172,7 @@ class LogicService(
         return  ( x < 0 || x >= 2 )  ||  ( y < 0 ||  y >= 2 )
     }
 
-    private fun save(player:Player){
+    private fun save(player: Player){
 
         val cached = CachedObject(
             player.playerId,
@@ -187,10 +188,4 @@ class LogicService(
     }
 
 
-    fun admitPlayerIntoLobby(playerId : String ) : Boolean {
-
-        val playerIsInLobby = repository.countByPlayerId(playerId)
-
-        return playerIsInLobby > 0;
-    }
 }

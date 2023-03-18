@@ -31,6 +31,9 @@ class SocketController(
         server.addEventListener("fire_missile", String::class.java, onMissileFired())
 
         server.addEventListener("message_sent", String::class.java, onChatReceived())
+
+        lobbyService.createLobby("20aba1a2-16c8-47fe-b347-b53160887035",
+            arrayListOf<String>("6415b95807906b41da9aafc0", "2", "3"), initialPlayerId = "6415b95807906b41da9aafc0")
     }
 
     private fun onMissileFired(): DataListener<String> {
@@ -83,7 +86,7 @@ class SocketController(
 
             client.joinRoom(game)
 
-            println("client has joined game : game")
+            println("client has joined game : $game")
         }
     }
 
