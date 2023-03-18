@@ -1,4 +1,4 @@
-package com.example.logicservice.entity
+package com.example.logicservice.entity.game
 
 
 data class Coordinates(

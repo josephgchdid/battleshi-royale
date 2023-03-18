@@ -1,4 +1,4 @@
-package com.example.logicservice.entity
+package com.example.logicservice.entity.lobby
 
 import org.springframework.data.annotation.Id
 import org.springframework.data.redis.core.RedisHash

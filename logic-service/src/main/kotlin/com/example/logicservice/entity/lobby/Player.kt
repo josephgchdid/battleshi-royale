@@ -1,5 +1,7 @@
-package com.example.logicservice.entity
+package com.example.logicservice.entity.lobby
 
+import com.example.logicservice.entity.game.Ship
+import com.example.logicservice.entity.game.Coordinates
 import org.springframework.data.annotation.Id
 import org.springframework.data.redis.core.RedisHash
 
